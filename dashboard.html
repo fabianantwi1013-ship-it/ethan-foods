@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,54 +86,6 @@
         </div>
       </div>
 
-      <div class="grid two-col mt">
-        <div class="panel">
-          <h3>Sales Trend <span class="hint">gross revenue per day</span></h3>
-          <div class="chart" id="chart-trend"></div>
-        </div>
-        <div class="panel">
-          <h3>Payment Methods <span class="hint">share of revenue</span></h3>
-          <div class="donut-wrap">
-            <div class="chart" id="chart-pay"></div>
-            <div class="donut-center" id="pay-center"></div>
-          </div>
-          <div class="legend" id="pay-legend" style="justify-content:center"></div>
-          <hr style="border:0;border-top:1px solid var(--line);margin:1.1rem 0">
-          <div class="grid" style="grid-template-columns:1fr 1fr;gap:.8rem;font-size:.8rem">
-            <div><span class="muted">Discounts given</span><br><b id="sk-discounts">—</b></div>
-            <div><span class="muted">Tax collected</span><br><b id="sk-tax">—</b></div>
-            <div><span class="muted">Refunds</span><br><b id="sk-refunds">—</b></div>
-            <div><span class="muted">Est. gross margin</span><br><b id="sk-margin">—</b></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid two-col mt">
-        <div class="panel">
-          <h3>Sales by Hour <span class="hint">when customers buy</span></h3>
-          <div class="chart" id="chart-hours"></div>
-        </div>
-        <div class="panel">
-          <h3>Top Products <span class="hint">by revenue</span></h3>
-          <div class="rank" id="top-products"></div>
-        </div>
-      </div>
-
-      <div class="grid two-col mt">
-        <div class="panel">
-          <h3>Recent Transactions <span class="hint">latest 8 orders</span></h3>
-          <div class="tbl-scroll">
-            <table class="tbl">
-              <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Channel</th><th>Payment</th><th>Status</th><th class="num">Total</th></tr></thead>
-              <tbody id="recent-body"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="panel">
-          <h3>Stock Alerts <span class="hint">reorder reminders</span></h3>
-          <div class="alerts" id="alerts"></div>
-        </div>
-      </div>
     </section>
 
     <!-- ================= ORDERS ================= -->

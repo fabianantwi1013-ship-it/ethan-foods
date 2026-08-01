@@ -334,7 +334,8 @@
     spark($("#kpi-avg .spark"), days.gross.map(function (g, i) { return days.tx[i] ? g / days.tx[i] : 0; }), "#2D6CB5");
     spark($("#kpi-items .spark"), days.items, "#E9B44C");
 
-    lineChart($("#chart-trend"), days.gross, days.labels);
+    if ($("#chart-trend")) lineChart($("#chart-trend"), days.gross, days.labels);
+    if (!$("#chart-hours")) return;   // overview is KPI-cards only
 
     var hours = [], hl = [];
     for (var h = 7; h <= 22; h++) {
