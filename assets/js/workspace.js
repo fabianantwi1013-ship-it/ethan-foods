@@ -495,6 +495,54 @@
       "<tr><td colspan='8' style='text-align:center;color:var(--muted);padding:1.8rem'>No website orders yet. When a customer checks out on the shop, their order and contact details land here.</td></tr>";
   }
 
+  /* ---- online sync: pull orders from the Google Sheet bridge ---- */
+  var SYNC_KEY_STORE = "ef_sync_key";
+  function syncStatus(msg, ok) {
+    var el = $("#sync-status");
+    if (el) { el.textContent = msg; el.style.color = ok ? "var(--green)" : "var(--muted)"; }
+  }
+  function syncWebOrders(manual) {
+    var hook = (window.EF_CONFIG || {}).orderWebhook;
+    var key = localStorage.getItem(SYNC_KEY_STORE) || "";
+    if (!hook) { syncStatus("Online sync not configured yet — orders from this browser only."); return; }
+    if (!key) { syncStatus("Sync key needed — click “Connect sync”."); return; }
+    syncStatus("Syncing…");
+    fetch(hook + (hook.indexOf("?") >= 0 ? "&" : "?") + "key=" + encodeURIComponent(key))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { syncStatus("Sync failed: " + data.error); return; }
+        var remote = data.orders || [];
+        var local = webOrders();
+        var known = {};
+        local.forEach(function (o) { known[o.no] = true; });
+        var added = 0;
+        remote.forEach(function (o) {
+          if (o && o.no && !known[o.no]) { local.push(o); added++; }
+        });
+        if (added) {
+          local.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+          saveWebOrders(local);
+          renderWebOrders();
+        }
+        syncStatus("✓ Synced " + new Date().toLocaleTimeString() + " — " + remote.length +
+          " online orders" + (added ? " (" + added + " new)" : ""), true);
+      })
+      .catch(function (e) { syncStatus("Sync failed — check your connection. " + (manual ? e : "")); });
+  }
+  if ($("#sync-now")) {
+    $("#sync-now").addEventListener("click", function () { syncWebOrders(true); });
+    $("#sync-connect").addEventListener("click", function () {
+      var k = prompt("Paste the sync key (the KEY you set in the Google Apps Script):",
+        localStorage.getItem(SYNC_KEY_STORE) || "");
+      if (k !== null) {
+        localStorage.setItem(SYNC_KEY_STORE, k.trim());
+        syncWebOrders(true);
+      }
+    });
+    syncWebOrders(false);
+    setInterval(function () { syncWebOrders(false); }, 120000);   // refresh every 2 minutes
+  }
+
   document.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-import]");
     if (!btn) return;

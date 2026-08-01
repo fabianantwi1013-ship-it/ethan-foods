@@ -147,6 +147,11 @@
     <section class="view" id="view-weborders">
       <div class="panel">
         <h3>Website Orders <span class="hint">placed through the shop's checkout — contact details included</span></h3>
+        <div class="toolbar">
+          <span class="muted" id="sync-status" style="font-size:.8rem">—</span>
+          <button class="btn btn-line" id="sync-now" type="button">🔄 Sync now</button>
+          <button class="btn btn-line" id="sync-connect" type="button">🔑 Connect sync</button>
+        </div>
         <div class="tbl-scroll">
           <table class="tbl">
             <thead><tr><th>Order</th><th>Received</th><th>Customer</th><th>Contact</th><th>Items</th><th class="num">Total</th><th>Status</th><th></th></tr></thead>
@@ -330,6 +335,7 @@
   </main>
 </div>
 
+<script src="assets/js/config.js?v=1"></script>
 <script src="assets/js/dashboard.js?v=4"></script>
 <script src="assets/js/workspace.js?v=4"></script>
 </body>

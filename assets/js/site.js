@@ -199,6 +199,15 @@
       try { inbox = JSON.parse(localStorage.getItem(WEB_ORDERS_KEY)) || []; } catch (err) { inbox = []; }
       inbox.unshift(order);
       try { localStorage.setItem(WEB_ORDERS_KEY, JSON.stringify(inbox)); } catch (err) {}
+
+      // also send to the online order inbox (Google Sheet), if configured
+      var hook = (window.EF_CONFIG || {}).orderWebhook;
+      if (hook) {
+        try {
+          fetch(hook, { method: "POST", body: JSON.stringify(order), keepalive: true })
+            .catch(function () {});
+        } catch (err) {}
+      }
       localStorage.setItem(CART_KEY, "{}");
       $$(".cart-count").forEach(function (el) { el.textContent = "0"; el.style.display = "none"; });
       $(".drawer-items").innerHTML =
