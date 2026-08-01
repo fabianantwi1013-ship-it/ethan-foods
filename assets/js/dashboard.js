@@ -335,62 +335,106 @@
     spark($("#kpi-items .spark"), days.items, "#E9B44C");
 
     if ($("#chart-trend")) lineChart($("#chart-trend"), days.gross, days.labels);
-    if (!$("#chart-hours")) return;   // overview is KPI-cards only
 
-    var hours = [], hl = [];
-    for (var h = 7; h <= 22; h++) {
-      hours.push(sum(A.orders.filter(function (o) { return o.hour === h; }), function (o) { return o.total; }));
-      hl.push(h <= 12 ? h + (h === 12 ? "p" : "a") : (h - 12) + "p");
+    if ($("#chart-hours")) {
+      var hours = [], hl = [];
+      for (var h = 7; h <= 22; h++) {
+        hours.push(sum(A.orders.filter(function (o) { return o.hour === h; }), function (o) { return o.total; }));
+        hl.push(h <= 12 ? h + (h === 12 ? "p" : "a") : (h - 12) + "p");
+      }
+      barChart($("#chart-hours"), hours, hl, "#1F7A43");
     }
-    barChart($("#chart-hours"), hours, hl, "#1F7A43");
 
-    var payAgg = {};
-    A.orders.forEach(function (o) { payAgg[o.pay] = (payAgg[o.pay] || 0) + o.total; });
-    var parts = Object.keys(payAgg).sort(function (a, b) { return payAgg[b] - payAgg[a]; })
-      .slice(0, 7).map(function (k, i) { return { k: k, v: payAgg[k], c: PAY_COLORS[i % PAY_COLORS.length] }; });
-    donut($("#chart-pay"), parts.length ? parts : [{ k: "No sales", v: 1, c: "#EFEAE0" }]);
-    $("#pay-center").innerHTML = "<b>" + fmt$0(A.gross) + "</b><span>total</span>";
-    $("#pay-legend").innerHTML = parts.map(function (p) {
-      return "<span><i style='background:" + p.c + "'></i>" + p.k + " · " + Math.round(p.v / (A.gross || 1) * 100) + "%</span>";
-    }).join("");
+    if ($("#chart-pay")) {
+      var payAgg = {};
+      A.orders.forEach(function (o) { payAgg[o.pay] = (payAgg[o.pay] || 0) + o.total; });
+      var parts = Object.keys(payAgg).sort(function (a, b) { return payAgg[b] - payAgg[a]; })
+        .slice(0, 7).map(function (k, i) { return { k: k, v: payAgg[k], c: PAY_COLORS[i % PAY_COLORS.length] }; });
+      donut($("#chart-pay"), parts.length ? parts : [{ k: "No sales", v: 1, c: "#EFEAE0" }]);
+      $("#pay-center").innerHTML = "<b>" + fmt$0(A.gross) + "</b><span>total</span>";
+      $("#pay-legend").innerHTML = parts.map(function (p) {
+        return "<span><i style='background:" + p.c + "'></i>" + p.k + " · " + Math.round(p.v / (A.gross || 1) * 100) + "%</span>";
+      }).join("");
+    }
 
-    var byLabel = {};
-    A.orders.forEach(function (o) {
-      o.lines.forEach(function (l) {
-        byLabel[l.label] = byLabel[l.label] || { qty: 0, rev: 0 };
-        byLabel[l.label].qty += l.qty; byLabel[l.label].rev += l.qty * l.price;
+    if ($("#top-products")) {
+      var byLabel = {};
+      A.orders.forEach(function (o) {
+        o.lines.forEach(function (l) {
+          var t = byLabel[l.label] = byLabel[l.label] || { qty: 0, rev: 0, buyers: {} };
+          t.qty += l.qty; t.rev += l.qty * l.price;
+          if (o.customer) t.buyers[o.customer] = (t.buyers[o.customer] || 0) + l.qty;
+        });
       });
-    });
-    var top = Object.keys(byLabel).map(function (k) {
-      return { label: k, qty: byLabel[k].qty, rev: byLabel[k].rev };
-    }).sort(function (a, b) { return b.rev - a.rev; }).slice(0, 6);
-    var maxRev = top.length ? top[0].rev : 1;
-    $("#top-products").innerHTML = top.map(function (t) {
-      return '<div class="rank-row"><img src="' + matchImg(t.label) + '" alt="">' +
-        '<div><b>' + t.label + '</b><div class="bar"><i style="width:' + (t.rev / maxRev * 100) + '%"></i></div></div>' +
-        '<div style="text-align:right"><span class="num">' + fmt$0(t.rev) + '</span><br><small class="muted">' + t.qty + ' packs</small></div></div>';
-    }).join("") || '<p class="muted">No sales in this period.</p>';
+      var top = Object.keys(byLabel).map(function (k) {
+        var t = byLabel[k];
+        var best = Object.keys(t.buyers).sort(function (a, b) { return t.buyers[b] - t.buyers[a]; })[0];
+        return { label: k, qty: t.qty, rev: t.rev, buyer: best, buyerQty: best ? t.buyers[best] : 0 };
+      }).sort(function (a, b) { return b.rev - a.rev; }).slice(0, 6);
+      var maxRev = top.length ? top[0].rev : 1;
+      $("#top-products").innerHTML = top.map(function (t) {
+        return '<div class="rank-row"><img src="' + matchImg(t.label) + '" alt="">' +
+          '<div><b>' + t.label + '</b>' +
+          (t.buyer ? '<div style="font-size:.74rem;color:var(--muted);margin:.12rem 0 .25rem">👤 Best customer: <b style="color:var(--ink)">' + t.buyer + '</b> · ' + t.buyerQty + ' packs</div>' : '') +
+          '<div class="bar"><i style="width:' + (t.rev / maxRev * 100) + '%"></i></div></div>' +
+          '<div style="text-align:right"><span class="num">' + fmt$0(t.rev) + '</span><br><small class="muted">' + t.qty + ' packs</small></div></div>';
+      }).join("") || '<p class="muted">No sales in this period.</p>';
+    }
 
-    $("#sk-discounts").textContent = fmt$(A.discounts);
-    $("#sk-tax").textContent = fmt$(A.tax);
-    $("#sk-refunds").textContent = fmt$(A.refunds);
-    var margin = sum(A.orders, function (o) {
-      return sum(o.lines, function (l) { return l.qty * (l.price - l.cost); });
-    });
-    $("#sk-margin").textContent = fmt$0(margin) + (LIVE ? "*" : "");
+    if ($("#sk-discounts")) {
+      $("#sk-discounts").textContent = fmt$(A.discounts);
+      $("#sk-tax").textContent = fmt$(A.tax);
+      $("#sk-refunds").textContent = fmt$(A.refunds);
+      var margin = sum(A.orders, function (o) {
+        return sum(o.lines, function (l) { return l.qty * (l.price - l.cost); });
+      });
+      $("#sk-margin").textContent = fmt$0(margin) + (LIVE ? "*" : "");
+    }
 
-    $("#recent-body").innerHTML = orders.slice(0, 8).map(orderRow).join("") ||
-      "<tr><td colspan='8' class='muted' style='padding:1.4rem'>No orders yet.</td></tr>";
+    if ($("#recent-body")) {
+      $("#recent-body").innerHTML = orders.slice(0, 8).map(orderRow).join("") ||
+        "<tr><td colspan='8' class='muted' style='padding:1.4rem'>No orders yet.</td></tr>";
+    }
 
-    var tracked = PRODUCTS.filter(function (p) { return typeof p.stock === "number"; });
-    var low = tracked.filter(function (p) { return p.stock <= p.reorder; });
-    $("#alerts").innerHTML =
-      !tracked.length ? '<div class="alert-row" style="background:var(--blue-soft)">ℹ️<span>Stock tracking is not enabled on these products in WooCommerce.</span></div>' :
-      low.length ? low.map(function (p) {
-        var cls = p.stock <= p.reorder / 2 ? "bad" : "warn";
-        return '<div class="alert-row ' + cls + '">' + (cls === "bad" ? "🚨" : "⚠️") +
-          '<span>' + p.name + ' — <b>' + p.stock + ' left</b> <small>(reorder at ' + p.reorder + ')</small></span></div>';
-      }).join("") : '<div class="alert-row" style="background:var(--green-soft)">✅<span>All products are above reorder levels.</span></div>';
+    if ($("#alerts")) {
+      var month = aggregate(30);
+      var soldByLabel = {};
+      month.orders.forEach(function (o) {
+        o.lines.forEach(function (l) { soldByLabel[l.label] = (soldByLabel[l.label] || 0) + l.qty; });
+      });
+      var tracked = PRODUCTS.filter(function (p) { return typeof p.stock === "number"; })
+        .map(function (p) {
+          var sold30 = soldByLabel[shortName(p.name)] || 0;
+          var velocity = sold30 / 30;
+          return {
+            p: p, sold30: sold30,
+            daysLeft: velocity ? Math.round(p.stock / velocity) : null,
+            suggest: Math.max(p.reorder * 2 - p.stock, Math.ceil(velocity * 30) - p.stock, 0)
+          };
+        });
+      var low = tracked.filter(function (t) { return t.p.stock <= t.p.reorder; })
+        .sort(function (a, b) { return a.p.stock / a.p.reorder - b.p.stock / b.p.reorder; });
+
+      $("#alerts").innerHTML =
+        !tracked.length ? '<div class="alert-row" style="background:var(--blue-soft)">ℹ️<span>Stock tracking is not enabled for these products.</span></div>' :
+        low.length ? low.map(function (t) {
+          var critical = t.p.stock <= t.p.reorder / 2;
+          return '<div class="alert-row ' + (critical ? "bad" : "warn") + '">' + (critical ? "🚨" : "⚠️") +
+            '<span><b>' + t.p.name + '</b> — <b>' + t.p.stock + ' packs left</b> (reorder point: ' + t.p.reorder + ')' +
+            '<br><small>Sold ' + t.sold30 + ' in the last 30 days' +
+            (t.daysLeft !== null ? ' · runs out in about <b>' + (t.daysLeft > 60 ? "60+" : t.daysLeft) + ' days</b>' : "") +
+            (t.suggest ? ' · suggested order: <b>' + t.suggest + ' packs</b>' : "") +
+            '</small></span></div>';
+        }).join("") :
+        (function () {
+          var soonest = tracked.filter(function (t) { return t.daysLeft !== null; })
+            .sort(function (a, b) { return a.daysLeft - b.daysLeft; })[0];
+          return '<div class="alert-row" style="background:var(--green-soft)">✅<span>All products are above reorder levels.' +
+            (soonest ? '<br><small>Next to watch: <b>' + soonest.p.name + '</b> — ' + soonest.p.stock +
+              ' left, about ' + (soonest.daysLeft > 60 ? "60+" : soonest.daysLeft) + ' days of stock at the current pace.</small>' : "") +
+            "</span></div>";
+        })();
+    }
   }
 
   function dailySeries(days) {
