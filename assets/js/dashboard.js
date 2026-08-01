@@ -329,10 +329,6 @@
     setDelta("#kpi-tx .delta", A.dTx);
 
     var days = dailySeries(Math.max(range, 2));
-    spark($("#kpi-gross .spark"), days.gross);
-    spark($("#kpi-tx .spark"), days.tx, "#1F7A43");
-    spark($("#kpi-avg .spark"), days.gross.map(function (g, i) { return days.tx[i] ? g / days.tx[i] : 0; }), "#2D6CB5");
-    spark($("#kpi-items .spark"), days.items, "#E9B44C");
 
     if ($("#chart-trend")) lineChart($("#chart-trend"), days.gross, days.labels);
 
