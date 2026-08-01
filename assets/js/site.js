@@ -148,6 +148,68 @@
     toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2200);
   }
 
+  /* ---------- checkout: capture the customer's contact details ---------- */
+  var WEB_ORDERS_KEY = "ef_web_orders_v1";
+
+  function cartLines() {
+    var cart = getCart();
+    return Object.keys(cart).map(function (id) {
+      var p = findProduct(id);
+      return p ? { id: id, name: p.name + (p.unit ? " (" + p.unit + ")" : ""), qty: cart[id], price: p.price } : null;
+    }).filter(Boolean);
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function showCheckoutForm() {
+    var lines = cartLines();
+    if (!lines.length) { toast("Your cart is empty."); return; }
+    var total = lines.reduce(function (a, l) { return a + l.qty * l.price; }, 0);
+    document.body.classList.add("checkout-mode");
+    $(".drawer-items").innerHTML =
+      '<form class="co-form" novalidate>' +
+      '<p class="co-head">Almost done! Tell us where to send your order and we\'ll be in touch to arrange payment &amp; delivery.</p>' +
+      '<div><label>Full name *</label><input name="name" required autocomplete="name" placeholder="Your name"></div>' +
+      '<div><label>Phone *</label><input name="phone" required autocomplete="tel" placeholder="+1 (555) 000-0000"></div>' +
+      '<div><label>Email</label><input name="email" type="email" autocomplete="email" placeholder="you@email.com"></div>' +
+      '<div><label>Delivery address</label><input name="address" autocomplete="street-address" placeholder="Street, city, state, ZIP"></div>' +
+      '<div><label>Note (optional)</label><textarea name="note" rows="2" placeholder="Anything we should know?"></textarea></div>' +
+      '<button class="btn btn-primary" type="submit">Place Order — $' + total.toFixed(2) + '</button>' +
+      '<button class="btn-linklike" type="button" data-co-back>← Back to cart</button>' +
+      '</form>';
+
+    $(".co-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var f = e.target;
+      var name = f.name.value.trim(), phone = f.phone.value.trim();
+      if (!name || !phone) { toast("Please add your name and phone number."); return; }
+      var order = {
+        id: Date.now(),
+        no: "WEB-" + String(Date.now()).slice(-6),
+        date: new Date().toISOString(),
+        customer: { name: name, phone: phone, email: f.email.value.trim(),
+                    address: f.address.value.trim(), note: f.note.value.trim() },
+        items: lines, total: Math.round(total * 100) / 100, status: "New"
+      };
+      var inbox;
+      try { inbox = JSON.parse(localStorage.getItem(WEB_ORDERS_KEY)) || []; } catch (err) { inbox = []; }
+      inbox.unshift(order);
+      try { localStorage.setItem(WEB_ORDERS_KEY, JSON.stringify(inbox)); } catch (err) {}
+      localStorage.setItem(CART_KEY, "{}");
+      $$(".cart-count").forEach(function (el) { el.textContent = "0"; el.style.display = "none"; });
+      $(".drawer-items").innerHTML =
+        '<div class="co-success"><p style="font-size:2.6rem">✅</p>' +
+        '<h4>Order received — thank you, ' + esc(name.split(" ")[0]) + '!</h4>' +
+        '<p>Your order <b>' + order.no + '</b> ($' + order.total.toFixed(2) + ') is in. ' +
+        'We\'ll call you at <b>' + esc(phone) + '</b> to confirm payment and delivery.</p></div>';
+      toast("Order " + order.no + " received!");
+    });
+  }
+
   document.addEventListener("click", function (e) {
     var add = e.target.closest("[data-add]");
     if (add) {
@@ -165,9 +227,20 @@
       setCart(c);
       return;
     }
-    if (e.target.closest("[data-cart-open]")) { document.body.classList.add("cart-open"); paintCart(); }
+    if (e.target.closest("[data-checkout]")) { showCheckoutForm(); return; }
+    if (e.target.closest("[data-co-back]")) {
+      document.body.classList.remove("checkout-mode");
+      paintCart();
+      return;
+    }
+    if (e.target.closest("[data-cart-open]")) {
+      document.body.classList.remove("checkout-mode");
+      document.body.classList.add("cart-open");
+      paintCart();
+    }
     if (e.target.closest("[data-cart-close]") || e.target.classList.contains("drawer-veil")) {
       document.body.classList.remove("cart-open");
+      document.body.classList.remove("checkout-mode");
     }
   });
   paintCart();

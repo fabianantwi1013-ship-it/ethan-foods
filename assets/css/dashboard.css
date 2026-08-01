@@ -189,6 +189,11 @@ button { font-family: inherit; cursor: pointer; }
   color: #8A7A64; padding: 1rem .8rem .35rem;
 }
 
+.count-badge {
+  background: var(--red); color: #fff; border-radius: 99px;
+  font-size: .64rem; font-weight: 800; padding: .1rem .45rem; margin-left: auto;
+}
+
 /* ---------- workspace forms ---------- */
 .wform { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
 .wform .full { grid-column: 1 / -1; }

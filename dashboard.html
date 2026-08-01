@@ -24,6 +24,7 @@
       <span class="nav-group">Store</span>
       <button class="active" data-view="overview"><span class="ic">📊</span> Overview</button>
       <button data-view="orders"><span class="ic">🧾</span> Orders</button>
+      <button data-view="weborders"><span class="ic">🛍️</span> Website Orders <span class="count-badge" id="web-count" hidden>0</span></button>
       <button data-view="inventory"><span class="ic">📦</span> Inventory</button>
       <span class="nav-group">Sales Office</span>
       <button data-view="sales"><span class="ic">📝</span> Sales</button>
@@ -181,6 +182,20 @@
             <tbody id="inv-body"></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- ================= WEBSITE ORDERS ================= -->
+    <section class="view" id="view-weborders">
+      <div class="panel">
+        <h3>Website Orders <span class="hint">placed through the shop's checkout — contact details included</span></h3>
+        <div class="tbl-scroll">
+          <table class="tbl">
+            <thead><tr><th>Order</th><th>Received</th><th>Customer</th><th>Contact</th><th>Items</th><th class="num">Total</th><th>Status</th><th></th></tr></thead>
+            <tbody id="weborders-body"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:.8rem">Orders placed in this browser appear instantly. <b>Create invoice</b> saves the customer to the Client Database and opens a proforma invoice for them.</p>
       </div>
     </section>
 

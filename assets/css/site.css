@@ -358,3 +358,19 @@ body.cart-open .drawer-veil { opacity: 1; pointer-events: auto; }
   .form-grid .full { grid-column: auto; }
   .cta-band { flex-direction: column; text-align: center; }
 }
+
+/* ---------- checkout form (cart drawer) ---------- */
+.co-form { display: flex; flex-direction: column; gap: .65rem; padding: 1.2rem 1.4rem; }
+.co-head { font-size: .84rem; color: var(--ink-soft); margin: 0 0 .2rem; }
+.co-form label { display: block; font-size: .72rem; font-weight: 700; color: var(--ink-soft); margin-bottom: .25rem; }
+.co-form input, .co-form textarea {
+  width: 100%; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 9px;
+  font: inherit; font-size: .88rem; box-sizing: border-box; background: #fff;
+}
+.co-form input:focus, .co-form textarea:focus { outline: 2px solid var(--gold); border-color: transparent; }
+.co-form .btn { width: 100%; margin-top: .3rem; }
+.btn-linklike { background: none; border: 0; color: var(--ink-soft); font: inherit; font-size: .82rem; cursor: pointer; text-decoration: underline; }
+.co-success { padding: 2.2rem 1.6rem; text-align: center; }
+.co-success h4 { font-family: var(--font-display); font-size: 1.15rem; margin: .4rem 0 .6rem; }
+.co-success p { font-size: .88rem; color: var(--ink-soft); }
+body.checkout-mode .drawer-foot { display: none; }

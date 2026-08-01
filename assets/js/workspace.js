@@ -456,6 +456,78 @@
     });
   }
 
+  /* ================= WEBSITE ORDERS (from the shop checkout) ================= */
+  var WEB_KEY = "ef_web_orders_v1";
+  function webOrders() {
+    try { return JSON.parse(localStorage.getItem(WEB_KEY)) || []; } catch (e) { return []; }
+  }
+  function saveWebOrders(list) {
+    try { localStorage.setItem(WEB_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  function renderWebOrders() {
+    var body = $("#weborders-body");
+    if (!body) return;
+    var list = webOrders();
+    var fresh = list.filter(function (o) { return o.status === "New"; }).length;
+    var badge = $("#web-count");
+    if (badge) { badge.textContent = fresh; badge.hidden = !fresh; }
+
+    body.innerHTML = list.map(function (o) {
+      var d = new Date(o.date);
+      var when = (d.getMonth() + 1) + "/" + d.getDate() + " " +
+        d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      var c = o.customer || {};
+      var contact = [c.phone, c.email, c.address].filter(Boolean).map(esc).join("<br>");
+      var items = (o.items || []).map(function (i) { return i.qty + "× " + esc(i.name); }).join("<br>");
+      var action = o.status === "New"
+        ? '<button class="btn btn-ginger" style="white-space:nowrap" data-import="' + o.id + '">Create invoice</button>'
+        : '<span class="muted">' + esc(o.invoiceNo || "") + "</span>";
+      return "<tr><td><b>" + esc(o.no) + "</b>" +
+        (c.note ? "<br><small class='muted'>“" + esc(c.note) + "”</small>" : "") + "</td>" +
+        "<td>" + when + "</td><td><b>" + esc(c.name || "—") + "</b></td>" +
+        "<td style='font-size:.8rem'>" + (contact || "—") + "</td>" +
+        "<td style='font-size:.82rem'>" + items + "</td>" +
+        '<td class="num"><b>' + fmt$(o.total) + "</b></td>" +
+        "<td>" + (o.status === "New" ? '<span class="badge info">New</span>' : '<span class="badge ok">Invoiced</span>') + "</td>" +
+        "<td>" + action + "</td></tr>";
+    }).join("") ||
+      "<tr><td colspan='8' style='text-align:center;color:var(--muted);padding:1.8rem'>No website orders yet. When a customer checks out on the shop, their order and contact details land here.</td></tr>";
+  }
+
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-import]");
+    if (!btn) return;
+    var list = webOrders();
+    var o = list.filter(function (x) { return String(x.id) === btn.getAttribute("data-import"); })[0];
+    if (!o) return;
+    var c = o.customer || {};
+    var client = findClient(c.name, c.phone);
+    if (!client) {
+      client = { id: nextClientId(), name: c.name || "Website customer", business: "",
+                 phone: c.phone || "", email: c.email || "", address: c.address || "",
+                 city: "", created: todayISO() };
+      db.clients.push(client);
+    }
+    var sale = {
+      id: db.sales.reduce(function (m, s) { return Math.max(m, s.id); }, 0) + 1,
+      no: "PI-" + (++db.nextNo),
+      date: todayISO(), clientId: client.id, type: "Retail",
+      items: (o.items || []).map(function (i) { return { name: i.name, qty: i.qty, price: i.price }; }),
+      delivery: 0, discount: 0, taxRate: 0, validDays: 14,
+      notes: "Website order " + o.no + (c.note ? " — “" + c.note + "”" : ""),
+      payments: []
+    };
+    db.sales.push(sale);
+    save();
+    o.status = "Invoiced"; o.invoiceNo = sale.no;
+    saveWebOrders(list);
+    renderEverything();
+    $("#inv-select").value = sale.id;
+    renderInvoice();
+    $$(".side nav button[data-view=invoice]")[0].click();
+  });
+
   /* ================= REPORT ================= */
   function reportSales() {
     var range = $("#report-range").value;
@@ -526,6 +598,7 @@
 
   /* ================= boot ================= */
   function renderEverything() {
+    renderWebOrders();
     renderClientPicker();
     renderInvoiceSelect();
     renderInvoice();
@@ -536,4 +609,9 @@
     renderReport();
   }
   renderEverything();
+
+  // live-refresh the inbox when an order is placed in another tab of this browser
+  window.addEventListener("storage", function (e) {
+    if (e.key === WEB_KEY) renderWebOrders();
+  });
 })();
