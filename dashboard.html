@@ -11,7 +11,45 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/dashboard.css?v=4">
 </head>
-<body>
+<body class="locked">
+<style>
+  body.locked .shell { display: none; }
+  .lock-veil {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #2A1E10, #4A3318 60%, #2A1E10);
+  }
+  body.locked .lock-veil { display: flex; }
+  .lock-card {
+    background: #fff; border-radius: 18px; padding: 2.6rem 2.4rem; width: min(400px, 92vw);
+    text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.4);
+  }
+  .lock-card img { height: 64px; margin-bottom: 1rem; }
+  .lock-card h1 { font-family: var(--font-display); font-size: 1.35rem; margin: 0 0 .4rem; }
+  .lock-card p { color: var(--muted); font-size: .85rem; margin: 0 0 1.3rem; }
+  .lock-card input {
+    width: 100%; padding: .8rem 1rem; border: 1.5px solid var(--line); border-radius: 10px;
+    font: inherit; font-size: 1rem; text-align: center; letter-spacing: .12em; box-sizing: border-box;
+  }
+  .lock-card input:focus { outline: 2px solid var(--gold); border-color: transparent; }
+  .lock-card button {
+    width: 100%; margin-top: .8rem; padding: .8rem; border: 0; border-radius: 10px;
+    background: var(--ginger); color: #fff; font: inherit; font-weight: 800; cursor: pointer;
+  }
+  .lock-err { color: var(--red); font-size: .8rem; height: 1.1rem; margin-top: .55rem; }
+  .lock-card.shake { animation: lockshake .3s; }
+  @keyframes lockshake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+</style>
+<div class="lock-veil">
+  <form class="lock-card" id="lock-form">
+    <img src="assets/img/brand/ethan-foods-mark.png" alt="">
+    <h1>Workspace</h1>
+    <p>This area is for Ethan Foods staff.<br>Enter the password to continue.</p>
+    <input type="password" id="lock-pass" placeholder="Password" autocomplete="current-password" autofocus>
+    <button type="submit">Unlock</button>
+    <div class="lock-err" id="lock-err"></div>
+  </form>
+</div>
 <div class="shell">
 
   <!-- SIDEBAR -->
@@ -35,6 +73,7 @@
       <button data-view="report"><span class="ic">📈</span> Report</button>
     </nav>
     <a class="back" href="index.html">← Back to website</a>
+    <a class="back" href="#" id="lock-btn" style="margin-top:.4rem">🔒 Lock workspace</a>
   </aside>
 
   <!-- MAIN -->
@@ -335,7 +374,50 @@
   </main>
 </div>
 
-<script src="assets/js/config.js?v=1"></script>
+<script src="assets/js/config.js?v=2"></script>
+<script>
+/* Workspace lock — compares a SHA-256 hash of the entered password with
+   EF_CONFIG.dashboardPasswordHash. The password itself is never stored. */
+(function () {
+  var AUTH_KEY = "ef_dash_auth";
+  var want = (window.EF_CONFIG || {}).dashboardPasswordHash;
+  if (!want) { document.body.classList.remove("locked"); return; }   // no password configured
+
+  function sha256(text) {
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+        return ("0" + b.toString(16)).slice(-2);
+      }).join("");
+    });
+  }
+
+  try { if (localStorage.getItem(AUTH_KEY) === want) document.body.classList.remove("locked"); } catch (e) {}
+
+  document.getElementById("lock-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var input = document.getElementById("lock-pass");
+    sha256(input.value).then(function (h) {
+      if (h === want) {
+        try { localStorage.setItem(AUTH_KEY, h); } catch (err) {}
+        document.body.classList.remove("locked");
+      } else {
+        document.getElementById("lock-err").textContent = "Wrong password — try again.";
+        input.value = "";
+        var card = document.querySelector(".lock-card");
+        card.classList.remove("shake");
+        void card.offsetWidth;
+        card.classList.add("shake");
+      }
+    });
+  });
+
+  document.getElementById("lock-btn").addEventListener("click", function (e) {
+    e.preventDefault();
+    try { localStorage.removeItem(AUTH_KEY); } catch (err) {}
+    location.reload();
+  });
+})();
+</script>
 <script src="assets/js/dashboard.js?v=4"></script>
 <script src="assets/js/workspace.js?v=4"></script>
 </body>
