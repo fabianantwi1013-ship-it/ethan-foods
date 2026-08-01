@@ -189,6 +189,39 @@ button { font-family: inherit; cursor: pointer; }
   color: #8A7A64; padding: 1rem .8rem .35rem;
 }
 
+/* ---------- clickable KPI cards + detail modal ---------- */
+.kpi[data-detail] { cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.kpi[data-detail]:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(60, 42, 20, .13); }
+.kpi[data-detail]::after {
+  content: "click for details ›"; display: block; font-size: .64rem; color: var(--muted);
+  margin-top: .35rem; opacity: 0; transition: opacity .15s;
+}
+.kpi[data-detail]:hover::after { opacity: 1; }
+
+.modal-veil {
+  position: fixed; inset: 0; background: rgba(30, 20, 8, .45); z-index: 60;
+  display: flex; align-items: center; justify-content: center; padding: 1.2rem;
+}
+.modal {
+  background: var(--panel, #fff); border-radius: 16px; box-shadow: 0 30px 70px rgba(0, 0, 0, .3);
+  width: min(760px, 100%); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--line);
+}
+.modal-head h3 { margin: 0; font-family: var(--font-display); font-size: 1.15rem; }
+.modal-head .x {
+  background: none; border: 0; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--muted);
+}
+.modal-body { padding: 1.3rem 1.4rem 1.6rem; overflow-y: auto; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .8rem; margin: 1rem 0; }
+.stat-grid > div { background: #FAF6EE; border-radius: 10px; padding: .7rem .9rem; }
+.stat-grid .muted { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; }
+.stat-grid b { font-size: 1.05rem; display: block; margin-top: .15rem; font-variant-numeric: tabular-nums; }
+.modal .tbl td, .modal .tbl th { font-size: .82rem; }
+.modal h4 { margin: 1.2rem 0 .5rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
 .count-badge {
   background: var(--red); color: #fff; border-radius: 99px;
   font-size: .64rem; font-weight: 800; padding: .1rem .45rem; margin-left: auto;

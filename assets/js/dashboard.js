@@ -592,6 +592,147 @@
     }
   }
 
+  /* ---------- KPI detail modal ---------- */
+  function rangeLabel() { return range === 1 ? "today" : "last " + range + " days"; }
+  function median(arr) {
+    if (!arr.length) return 0;
+    var s = arr.slice().sort(function (a, b) { return a - b; });
+    var m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+  function statCard(label, value) {
+    return "<div><span class='muted'>" + label + "</span><b>" + value + "</b></div>";
+  }
+  function miniOrderRows(list) {
+    return list.map(function (o) {
+      return "<tr><td><b>" + o.no + "</b></td><td>" + (o.date.getMonth() + 1) + "/" + o.date.getDate() +
+        "</td><td>" + o.customer + "</td><td>" + o.channel + "</td><td class='num'><b>" + fmt$(o.total) + "</b></td></tr>";
+    }).join("");
+  }
+  function byChannelTable(A) {
+    var ch = {};
+    A.orders.forEach(function (o) {
+      ch[o.channel] = ch[o.channel] || { n: 0, rev: 0 };
+      ch[o.channel].n++; ch[o.channel].rev += o.total;
+    });
+    return "<table class='tbl'><thead><tr><th>Channel</th><th class='num'>Orders</th><th class='num'>Revenue</th><th class='num'>Share</th></tr></thead><tbody>" +
+      Object.keys(ch).sort(function (a, b) { return ch[b].rev - ch[a].rev; }).map(function (k) {
+        return "<tr><td>" + k + "</td><td class='num'>" + ch[k].n + "</td><td class='num'>" + fmt$(ch[k].rev) +
+          "</td><td class='num'>" + Math.round(ch[k].rev / (A.gross || 1) * 100) + "%</td></tr>";
+      }).join("") + "</tbody></table>";
+  }
+
+  var KPI_DETAILS = {
+    gross: function (A, days) {
+      return "<div class='chart' id='md-chart'></div>" +
+        "<div class='stat-grid'>" +
+        statCard("Gross sales", fmt$(A.gross)) +
+        statCard("Discounts", "−" + fmt$(A.discounts)) +
+        statCard("Tax collected", fmt$(A.tax)) +
+        statCard("Refunds", "−" + fmt$(A.refunds)) +
+        statCard("Est. margin", fmt$0(sum(A.orders, function (o) {
+          return sum(o.lines, function (l) { return l.qty * (l.price - l.cost); });
+        })) + (LIVE ? "*" : "")) +
+        statCard("Best day", (function () {
+          var m = 0, mi = 0;
+          days.gross.forEach(function (v, i) { if (v > m) { m = v; mi = i; } });
+          return days.labels[mi] + " · " + fmt$0(m);
+        })()) +
+        "</div><h4>Revenue by channel</h4>" + byChannelTable(A);
+    },
+    tx: function (A, days) {
+      var st = {};
+      A.orders.forEach(function (o) { st[o.status] = (st[o.status] || 0) + 1; });
+      var hourCount = {};
+      A.orders.forEach(function (o) { hourCount[o.hour] = (hourCount[o.hour] || 0) + 1; });
+      var busiest = Object.keys(hourCount).sort(function (a, b) { return hourCount[b] - hourCount[a]; })[0];
+      return "<div class='chart' id='md-chart'></div>" +
+        "<div class='stat-grid'>" +
+        statCard("Transactions", A.tx) +
+        statCard("Avg. per day", (A.tx / Math.max(range, 1)).toFixed(1)) +
+        statCard("Busiest hour", busiest != null ? ((busiest % 12 || 12) + (busiest < 12 ? "am" : "pm")) : "—") +
+        Object.keys(st).map(function (k) { return statCard(k, st[k]); }).join("") +
+        "</div><h4>Latest transactions in this period</h4>" +
+        "<table class='tbl'><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Channel</th><th class='num'>Total</th></tr></thead><tbody>" +
+        miniOrderRows(A.orders.slice(0, 10)) + "</tbody></table>";
+    },
+    avg: function (A) {
+      var totals = A.orders.map(function (o) { return o.total; });
+      var biggest = A.orders.slice().sort(function (a, b) { return b.total - a.total; }).slice(0, 5);
+      var ch = {};
+      A.orders.forEach(function (o) {
+        ch[o.channel] = ch[o.channel] || { n: 0, rev: 0 };
+        ch[o.channel].n++; ch[o.channel].rev += o.total;
+      });
+      return "<div class='stat-grid'>" +
+        statCard("Average ticket", fmt$(A.avg)) +
+        statCard("Median ticket", fmt$(median(totals))) +
+        statCard("Smallest", fmt$(totals.length ? Math.min.apply(null, totals) : 0)) +
+        statCard("Largest", fmt$(totals.length ? Math.max.apply(null, totals) : 0)) +
+        "</div><h4>Average ticket by channel</h4>" +
+        "<table class='tbl'><thead><tr><th>Channel</th><th class='num'>Orders</th><th class='num'>Avg. ticket</th></tr></thead><tbody>" +
+        Object.keys(ch).map(function (k) {
+          return "<tr><td>" + k + "</td><td class='num'>" + ch[k].n + "</td><td class='num'>" + fmt$(ch[k].rev / ch[k].n) + "</td></tr>";
+        }).join("") + "</tbody></table>" +
+        "<h4>Biggest orders</h4>" +
+        "<table class='tbl'><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Channel</th><th class='num'>Total</th></tr></thead><tbody>" +
+        miniOrderRows(biggest) + "</tbody></table>";
+    },
+    items: function (A, days) {
+      var byLabel = {};
+      A.orders.forEach(function (o) {
+        o.lines.forEach(function (l) {
+          byLabel[l.label] = byLabel[l.label] || { qty: 0, rev: 0 };
+          byLabel[l.label].qty += l.qty; byLabel[l.label].rev += l.qty * l.price;
+        });
+      });
+      var keys = Object.keys(byLabel).sort(function (a, b) { return byLabel[b].qty - byLabel[a].qty; });
+      return "<div class='chart' id='md-chart'></div>" +
+        "<div class='stat-grid'>" +
+        statCard("Packs sold", A.items) +
+        statCard("Avg. packs / order", A.tx ? (A.items / A.tx).toFixed(1) : "0") +
+        statCard("Flavors sold", keys.length) +
+        "</div><h4>Packs by product</h4>" +
+        "<table class='tbl'><thead><tr><th>Product</th><th class='num'>Packs</th><th class='num'>Revenue</th><th class='num'>Share</th></tr></thead><tbody>" +
+        keys.map(function (k) {
+          return "<tr><td>" + k + "</td><td class='num'><b>" + byLabel[k].qty + "</b></td><td class='num'>" +
+            fmt$(byLabel[k].rev) + "</td><td class='num'>" + Math.round(byLabel[k].qty / (A.items || 1) * 100) + "%</td></tr>";
+        }).join("") + "</tbody></table>";
+    }
+  };
+  var KPI_TITLES = { gross: "Gross Sales", tx: "Transactions", avg: "Avg. Ticket", items: "Packs Sold" };
+
+  function openKpiModal(key) {
+    var A = aggregate(range);
+    var days = dailySeries(Math.max(range, 7));
+    var veil = document.createElement("div");
+    veil.className = "modal-veil";
+    veil.innerHTML = "<div class='modal'><div class='modal-head'><h3>" +
+      KPI_TITLES[key] + " — " + rangeLabel() +
+      "</h3><button class='x' aria-label='Close'>×</button></div><div class='modal-body'>" +
+      KPI_DETAILS[key](A, days) + "</div></div>";
+    document.body.appendChild(veil);
+    var chart = veil.querySelector("#md-chart");
+    if (chart) {
+      if (key === "gross") lineChart(chart, days.gross, days.labels);
+      if (key === "tx") barChart(chart, days.tx, days.labels, "#1F7A43");
+      if (key === "items") barChart(chart, days.items, days.labels, "#E9B44C");
+    }
+    function close() { veil.remove(); document.removeEventListener("keydown", onKey); }
+    function onKey(e) { if (e.key === "Escape") close(); }
+    veil.addEventListener("click", function (e) {
+      if (e.target === veil || e.target.classList.contains("x")) close();
+    });
+    document.addEventListener("keydown", onKey);
+  }
+
+  [["#kpi-gross", "gross"], ["#kpi-tx", "tx"], ["#kpi-avg", "avg"], ["#kpi-items", "items"]].forEach(function (pair) {
+    var card = $(pair[0]);
+    if (!card) return;
+    card.setAttribute("data-detail", pair[1]);
+    card.addEventListener("click", function () { openKpiModal(pair[1]); });
+  });
+
   /* ---------- wire up ---------- */
   $$(".side nav button").forEach(function (b) {
     b.addEventListener("click", function () {
