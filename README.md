@@ -1,4 +1,4 @@
-# Ethan Foods — New Website & POS Dashboard
+﻿# Ethan Foods — New Website & POS Dashboard
 
 A modern rebuild of [ethanfoods.net](https://ethanfoods.net) using the original site's real content
 (products, story, contact details and all 43 customer reviews), with every image retouched and
@@ -19,9 +19,9 @@ Double-click `index.html` — no server, build step or install needed. Works fro
 | `wholesale.html` | Wholesale enquiry form (product-of-interest chips) |
 | `reviews.html` | All 43 real customer reviews from the old site |
 | `contact.html` | Contact form + phone/email cards |
-| `dashboard.html` | **POS dashboard** — see below |
+| `The staff Workspace (POS dashboard) now lives in its own repository: ethan-workspace.
 
-## POS dashboard (`dashboard.html`)
+## POS dashboard (`The staff Workspace (POS dashboard) now lives in its own repository: ethan-workspace.
 
 Runs on realistic demo data (90 days of generated orders, deterministic so figures are stable).
 Standard POS information included:
